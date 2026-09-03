@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>3DCreator</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/style.css">
   <script type="module" src="/static/vendor/model-viewer.min.js"></script>
 </head>
@@ -11,9 +12,9 @@
   <main>
     <header>
       <div>
-        <span class="eyebrow">LOCAL 3D AI / AMD</span>
+        <span class="eyebrow">LOCAL 3D AI / AMD · CANDIDATE</span>
         <h1>3DCreator <span id="version"></span></h1>
-        <p class="lead">Lokal generieren, reparieren, bewerten und mit jedem Projekt bessere Lerndaten sammeln.</p>
+        <p class="lead">Lokal generieren, reparieren und lernen. Neues Wissen bleibt zunaechst Candidate; eine Stable-Version wird erst nach festen Benchmarks freigegeben.</p>
       </div>
       <div class="headStatus">
         <div id="backend" class="pill">Backend pruefen ...</div>
@@ -28,7 +29,7 @@
         <div class="sectionHead"><div><span class="step">01</span><h2>Neues Modell</h2></div><span class="hint">RX 6800 XT · 16 GB</span></div>
         <form id="generateForm">
           <label>Projektname<input name="name" required placeholder="z. B. Nachtara-Pokeball"></label>
-          <label>Ziel / Korrekturwunsch<textarea name="prompt" rows="4" placeholder="100 mm, fuer FDM, stabile Ohren, Schweif separat, Details erhalten ..."></textarea><small>Der Text wird zusammen mit Ergebnis und spaeterem Feedback als Lerndatensatz gespeichert.</small></label>
+          <label>Ziel / Korrekturwunsch<textarea name="prompt" rows="4" placeholder="100 mm, fuer FDM, stabile Ohren, Schweif separat, Details erhalten ..."></textarea><small>3DCreator nutzt Projektname und Beschreibung auch zur automatischen Modellklassifikation, z. B. Flexi, Bauteil, Kreatur oder Animefigur.</small></label>
           <div class="modeSwitch"><label><input type="radio" name="mode" value="single" checked> SingleView</label><label><input type="radio" name="mode" value="multiview"> MultiView</label></div>
           <div class="viewGrid" id="viewGrid">
             <label class="viewSlot required"><span>Front</span><small>Pflicht</small><input name="front" type="file" accept="image/*" required><b class="fileName">Bild waehlen</b></label>
