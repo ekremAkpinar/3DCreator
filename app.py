@@ -15,7 +15,7 @@ from mille3d.blender_bridge import blender_status, repair_mesh
 from mille3d.comfy_client import ComfyClient, ComfyError
 from mille3d.config import COMFY_URL, PROJECTS_DIR, ROOT, ensure_dirs, workflow_for
 from mille3d.db import connect, init_db, rows, utcnow
-from mille3d.model_taxonomy import classify_model, load_taxonomy
+from mille3d.model_taxonomy import classify_model, classification_for_family, load_taxonomy
 from mille3d.workflow_setup import setup_workflows
 
 ensure_dirs()
@@ -197,12 +197,16 @@ def learning_stats() -> dict:
     positive = rows("SELECT COUNT(*) AS n FROM feedback WHERE rating>=4")[0]["n"]
     negative = rows("SELECT COUNT(*) AS n FROM feedback WHERE rating<=2")[0]["n"]
     classified = rows("SELECT COUNT(*) AS n FROM projects WHERE model_family!='unknown'")[0]["n"]
+    user_classified = rows(
+        "SELECT COUNT(*) AS n FROM projects WHERE classification_json LIKE '%\"source\": \"user\"%'"
+    )[0]["n"]
     return {
         "feedback": total,
         "approved": approved,
         "positive": positive,
         "negative": negative,
         "classified_projects": classified,
+        "user_classified_projects": user_classified,
     }
 
 
@@ -210,6 +214,7 @@ def learning_stats() -> dict:
 def generate(
     name: str = Form(...),
     prompt: str = Form(""),
+    model_family: str = Form("auto"),
     quality: str = Form("512"),
     mode: str = Form("single"),
     auto_repair: bool = Form(False),
@@ -239,7 +244,14 @@ def generate(
         raise HTTPException(400, "MultiView benoetigt Frontansicht plus mindestens eine weitere Ansicht.")
 
     workflow_path = _ensure_workflow(mode, quality)
-    classification = classify_model(name, prompt)
+    try:
+        classification = (
+            classify_model(name, prompt)
+            if model_family == "auto"
+            else classification_for_family(model_family)
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
     project_id = uuid.uuid4().hex
     generation_id = uuid.uuid4().hex
