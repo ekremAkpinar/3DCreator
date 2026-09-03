@@ -83,3 +83,4 @@ form.addEventListener('submit',async e=>{
 });
 viewer.addEventListener('error',()=>{ viewerMeta.textContent='Diese Rohdatei kann der Browser nicht direkt anzeigen. Nutze Blender-Reparatur, um eine lokale GLB-Vorschau zu erzeugen.'; });
 updateMode(); refreshStatus(); refreshGenerations();
+setInterval(refreshStatus, 5000);
