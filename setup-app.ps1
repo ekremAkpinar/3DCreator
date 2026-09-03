@@ -78,4 +78,5 @@ if ($LASTEXITCODE -ne 0) {
   Write-Warning 'Workflow-Download konnte nicht abgeschlossen werden. Die App kann ihn spaeter erneut starten.'
 }
 
-Write-Host '3DCreator v0.2.1 eingerichtet. Danach start.bat ausfuehren.' -ForegroundColor Green
+Write-Host '3DCreator v0.2.2 Candidate eingerichtet.' -ForegroundColor Green
+Write-Host 'Einmalig als Naechstes: install-amd-backend.ps1. Danach reicht start.bat.' -ForegroundColor Cyan
