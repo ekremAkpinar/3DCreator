@@ -1,4 +1,4 @@
-# 3DCreator v0.2.2 Candidate
+# 3DCreator v0.2.3 Candidate
 
 Eigenstaendige lokale 3D-KI fuer Windows und AMD Radeon. Dieses Repository ist vom Desktop-Projekt `Mille` getrennt.
 
@@ -15,23 +15,24 @@ Aktueller Zielrechner:
 
 3DCreator soll stetig lernen, aber eine funktionierende Version nicht durch neue Experimente verschlechtern.
 
-Deshalb gibt es konzeptionell drei Kanaele:
+Deshalb gibt es drei logische Kanaele:
 
 - `stable`: reproduzierbar und benchmark-getestet
 - `candidate`: naechste moegliche Stable-Version
 - `learning`: neue Regeln, neue Modellfamilien, neue Toleranzen und experimentelle Strategien
 
-Aktuell ist `0.2.2` ein **Candidate**. Die erste Stable-Version wird erst markiert, wenn der reale Hardware-Test auf der RX 6800 XT bestanden wurde.
+Aktuell ist `0.2.3` ein **Candidate**. Die erste Stable-Version wird erst markiert, wenn der reale Hardware-Test auf der RX 6800 XT bestanden wurde.
 
 Die Regeln stehen in:
 
 - `agent.md`
 - `AGENTS.md`
 - `releases/release_state.json`
+- `benchmarks/benchmark_suite.json`
 
 ## Modellfamilien / Startwissen
 
-3DCreator klassifiziert neue Projekte automatisch anhand von Projektname und Beschreibung. Das Startwissen liegt in:
+3DCreator klassifiziert neue Projekte automatisch oder ueber eine manuelle Nutzerauswahl. Das Startwissen liegt in:
 
 `knowledge/model_families.json`
 
@@ -46,7 +47,7 @@ Aktuelle Familien:
 - Statue / Displayfigur
 - Deko / Displayobjekt
 
-Die erkannte Familie wird zusammen mit dem Projekt gespeichert. Spaeter bestimmt sie unter anderem Generatorstrategie, Toleranzen, Teilung, Mindestwandstaerken und Druckbarkeitsregeln.
+Manuelle Klassifikationen werden als Nutzer-Ground-Truth gespeichert und sollen spaeter hoeher gewichtet werden als eine automatische Keyword-Vermutung.
 
 ## Funktionen
 
@@ -59,8 +60,12 @@ Die erkannte Familie wird zusammen mit dem Projekt gespeichert. Spaeter bestimmt
 - Raw-Modell und separate `repaired.glb`
 - Blender Auto-Repair
 - lokale SQLite-Projekte und Feedback/Lerndaten
-- automatische Modellfamilien-Klassifikation
-- Stable/Candidate/Learning-Trennung als Release-Regel
+- automatische und manuelle Modellfamilien-Klassifikation
+- Stable/Candidate/Learning-Trennung
+- automatischer ComfyUI-Start
+- Live-Pruefung, ob die benoetigten TRELLIS-Nodes wirklich registriert sind
+- Offline-Python-Importcheck fuer den TRELLIS-Custom-Node
+- `repair-amd-backend.ps1` fuer `missing_node_type` und Plugin-Importfehler
 
 ## Was muss ich einmalig machen?
 
@@ -72,15 +77,13 @@ Die Kurzfassung steht auch in `FIRST_START.md`.
 powershell -ExecutionPolicy Bypass -File .\setup-app.ps1
 ```
 
-Das Setup erkennt fehlendes Python 3.12 und kann es ueber `winget` installieren.
-
 ### 2. AMD/TRELLIS-Backend installieren
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install-amd-backend.ps1
 ```
 
-Das ist die eigentliche lokale 3D-KI. Ohne diesen einmaligen Schritt zeigt die App `ComfyUI offline` und kann kein Modell erzeugen.
+Der Installer prueft nicht mehr nur, ob PyTorch die GPU sieht, sondern importiert danach den TRELLIS-Custom-Node mit der echten Backend-Python-Umgebung. Ein Plugin-Importfehler wird dadurch bereits bei der Installation sichtbar.
 
 ### 3. Pruefen
 
@@ -88,9 +91,34 @@ Das ist die eigentliche lokale 3D-KI. Ohne diesen einmaligen Schritt zeigt die A
 .\check-system.bat
 ```
 
-## Danach im Alltag
+Der Systemcheck prueft:
 
-Nur noch:
+1. AMD / ROCm
+2. TRELLIS-Plugin-Import
+3. 3DCreator App
+4. Workflowprofile
+5. Live-Node-Registrierung, falls ComfyUI bereits laeuft
+
+## Fehler: `missing_node_type`
+
+Wenn ComfyUI meldet, dass z. B. `Trellis2LoadImageWithTransparency` nicht gefunden wurde, ist ComfyUI selbst online, aber der TRELLIS-Custom-Node wurde nicht erfolgreich geladen.
+
+Dann zuerst das Fenster `3DCreator Backend` schliessen und ausfuehren:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\repair-amd-backend.ps1
+```
+
+Das Skript:
+
+- aktualisiert `ComfyUI-Trellis2-AMD`
+- installiert dessen Python-Abhaengigkeiten erneut
+- installiert die vier AMD/ROCm-Wheels erneut
+- fuehrt `pip check` aus
+- importiert den TRELLIS-Custom-Node direkt
+- zeigt bei einem Fehler den entscheidenden Python-Traceback
+
+## Danach im Alltag
 
 ```powershell
 .\start.bat
