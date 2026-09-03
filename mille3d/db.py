@@ -27,6 +27,8 @@ def init_db() -> None:
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 prompt TEXT NOT NULL DEFAULT '',
+                model_family TEXT NOT NULL DEFAULT 'unknown',
+                classification_json TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL
             );
 
@@ -55,6 +57,12 @@ def init_db() -> None:
             """
         )
 
+        project_columns = {row["name"] for row in conn.execute("PRAGMA table_info(projects)")}
+        if "model_family" not in project_columns:
+            conn.execute("ALTER TABLE projects ADD COLUMN model_family TEXT NOT NULL DEFAULT 'unknown'")
+        if "classification_json" not in project_columns:
+            conn.execute("ALTER TABLE projects ADD COLUMN classification_json TEXT NOT NULL DEFAULT '{}'")
+
         generation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(generations)")}
         if "mode" not in generation_columns:
             conn.execute("ALTER TABLE generations ADD COLUMN mode TEXT NOT NULL DEFAULT 'single'")
@@ -71,6 +79,7 @@ def init_db() -> None:
         if "issues_json" not in feedback_columns:
             conn.execute("ALTER TABLE feedback ADD COLUMN issues_json TEXT NOT NULL DEFAULT '[]'")
 
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_projects_family ON projects(model_family)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_generations_project ON generations(project_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_generation ON feedback(generation_id)")
 
