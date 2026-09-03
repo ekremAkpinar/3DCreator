@@ -33,8 +33,10 @@ def main() -> int:
         print("[OK] trellis2_profiler.py ist vorhanden; kein 3DCreator-Patch notwendig.")
         return 0
 
-    if BROKEN_IMPORT not in text:
-        print("[OK] Kein kaputter trellis2_profiler-Import gefunden; kein Patch notwendig.")
+    has_import = BROKEN_IMPORT in text
+    has_update = BROKEN_UPDATE in text
+    if not has_import and not has_update:
+        print("[OK] Kein kaputter trellis2_profiler-Verweis gefunden; kein Patch notwendig.")
         return 0
 
     backup = custom / "nodes.py.3dcreator-upstream.bak"
@@ -46,16 +48,28 @@ def main() -> int:
     removed = 0
     for line in lines:
         stripped = line.strip()
-        if stripped in {BROKEN_IMPORT, BROKEN_UPDATE}:
+        if stripped == BROKEN_IMPORT or stripped == BROKEN_UPDATE:
             removed += 1
             continue
         patched.append(line)
+
+    # Defensive cleanup for partially patched files or unusual line endings/spacing.
+    joined = "\n".join(patched)
+    joined = joined.replace(BROKEN_IMPORT, "")
+    joined = joined.replace(BROKEN_UPDATE, "")
+    patched = [line for line in joined.splitlines() if line.strip()]
 
     if PATCH_COMMENT not in patched:
         patched.append("")
         patched.append(PATCH_COMMENT)
 
     nodes.write_text("\n".join(patched).rstrip() + "\n", encoding="utf-8")
+
+    remaining = nodes.read_text(encoding="utf-8")
+    if "trellis2_profiler" in remaining or "_P_MAP" in remaining or "_P_DMAP" in remaining:
+        print("[FEHLER] Profiler-Verweis ist nach dem Patch noch vorhanden.")
+        return 1
+
     manifest.write_text(
         json.dumps(
             {
@@ -63,6 +77,7 @@ def main() -> int:
                 "applied_at": datetime.now(timezone.utc).isoformat(),
                 "reason": "Upstream AMD nodes.py imports trellis2_profiler.py, but that file is absent from the repository.",
                 "removed_lines": removed,
+                "recovered_partial_patch": bool(has_import) != bool(has_update),
                 "backup": backup.name,
                 "upstream_commit_with_bug": UPSTREAM_COMMIT_WITH_BUG,
                 "known_parent_without_import": UPSTREAM_PARENT,
@@ -72,7 +87,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    print(f"[PATCH] Kaputten optionalen Profiler-Import entfernt ({removed} Zeilen).")
+    print(f"[PATCH] Kaputte Profiler-Verweise entfernt ({removed} direkte Zeilen).")
     print(f"[PATCH] Backup: {backup}")
     print(f"[PATCH] Manifest: {manifest}")
     return 0
