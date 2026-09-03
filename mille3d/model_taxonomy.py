@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import Any
 
 from .config import ROOT
@@ -16,6 +15,28 @@ def load_taxonomy() -> dict[str, Any]:
     if not isinstance(payload, dict) or not isinstance(payload.get("families"), dict):
         raise RuntimeError(f"Ungueltige Modell-Taxonomie: {TAXONOMY_PATH}")
     return payload
+
+
+def _result(taxonomy: dict[str, Any], family_id: str, *, confidence: float, source: str, matched: list[str]) -> dict[str, Any]:
+    family = taxonomy["families"].get(family_id)
+    if not isinstance(family, dict):
+        raise ValueError(f"Unbekannte Modellfamilie: {family_id}")
+    return {
+        "family": family_id,
+        "label": family.get("label_de", family_id),
+        "confidence": round(confidence, 3),
+        "source": source,
+        "matched_keywords": matched,
+        "preferred_pipeline": family.get("preferred_pipeline", "hybrid"),
+        "priorities": family.get("priorities", []),
+        "default_rules": family.get("default_rules", {}),
+        "taxonomy_version": taxonomy.get("schema_version", 1),
+    }
+
+
+def classification_for_family(family_id: str) -> dict[str, Any]:
+    taxonomy = load_taxonomy()
+    return _result(taxonomy, family_id, confidence=1.0, source="user", matched=[])
 
 
 def classify_model(name: str, prompt: str) -> dict[str, Any]:
@@ -44,13 +65,4 @@ def classify_model(name: str, prompt: str) -> dict[str, Any]:
         margin = max(0, best_score - second_score)
         confidence = min(0.98, 0.55 + best_score * 0.08 + margin * 0.04)
 
-    family = taxonomy["families"].get(best_family, {})
-    return {
-        "family": best_family,
-        "label": family.get("label_de", best_family),
-        "confidence": round(confidence, 3),
-        "matched_keywords": matched,
-        "preferred_pipeline": family.get("preferred_pipeline", "hybrid"),
-        "priorities": family.get("priorities", []),
-        "taxonomy_version": taxonomy.get("schema_version", 1),
-    }
+    return _result(taxonomy, best_family, confidence=confidence, source="auto", matched=matched)
