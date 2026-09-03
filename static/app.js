@@ -27,8 +27,20 @@ async function refreshStatus(){
     const all=Object.values(s.workflows||{}); const ready=all.length===4&&all.every(x=>x.exists);
     setupWorkflowsButton.textContent=ready?'Workflows neu erzeugen':'Workflows automatisch einrichten'; setupWorkflowsButton.classList.toggle('ready',ready);
     const key=`${selectedMode()}_${selectedQuality()}`; const wf=s.workflows?.[key];
-    if(s.comfy.online&&wf?.exists){ backend.textContent=`TRELLIS bereit · ${selectedMode()==='multiview'?'MultiView':'SingleView'} ${selectedQuality()}`; backend.className='pill ok'; }
-    else { const missing=[]; if(!s.comfy.online) missing.push('ComfyUI offline'); if(!wf?.exists) missing.push(`${key}-Workflow fehlt`); backend.textContent=missing.join(' / '); backend.className='pill bad'; }
+    if(s.comfy.online&&s.comfy.trellis_ready&&wf?.exists){
+      backend.textContent=`TRELLIS bereit · ${selectedMode()==='multiview'?'MultiView':'SingleView'} ${selectedQuality()}`;
+      backend.className='pill ok';
+    } else {
+      const missing=[];
+      if(!s.comfy.online) missing.push('ComfyUI offline');
+      else if(!s.comfy.trellis_ready){
+        const count=(s.comfy.missing_nodes||[]).length;
+        missing.push(`TRELLIS Plugin fehlerhaft${count?` · ${count} Nodes fehlen`:''}`);
+      }
+      if(!wf?.exists) missing.push(`${key}-Workflow fehlt`);
+      backend.textContent=missing.join(' / ');
+      backend.className='pill bad';
+    }
     if(s.blender?.available){ blender.textContent='Blender Auto-Repair bereit'; blender.className='subpill good'; }
     else { blender.textContent='Blender nicht gefunden · Rohmodell bleibt nutzbar'; blender.className='subpill warn'; }
   }catch(e){ backend.textContent='Statusfehler'; backend.className='pill bad'; }
@@ -63,7 +75,7 @@ async function refreshGenerations(){
     generationsEl.appendChild(div);
   }
 }
-function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
+function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[ch])); }
 function formatDate(value){ try{return new Date(value).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});}catch{return value||'';} }
 setupWorkflowsButton.addEventListener('click',setupWorkflows);
 form.addEventListener('change',e=>{ if(e.target.matches('input[name=mode],input[name=quality]')) updateMode(); if(e.target.matches('input[type=file]')) updateFileLabel(e.target); });
