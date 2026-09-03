@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "name": "3DCreator Stable Gate",
+  "required_for_stable": true,
+  "target_hardware": "AMD Radeon RX 6800 XT 16 GB",
+  "default_profile": "single_512",
+  "critical_gates": {
+    "generation_completes": true,
+    "output_file_readable": true,
+    "no_backend_crash": true,
+    "raw_output_preserved": true
+  },
+  "technical_metrics": [
+    "watertight_or_explained",
+    "boundary_edges",
+    "self_intersections",
+    "minimum_wall_thickness",
+    "bounding_box_mm",
+    "thin_parts",
+    "standing_stability",
+    "manual_repairs_required"
+  ],
+  "visual_metrics": [
+    "silhouette_similarity",
+    "key_feature_similarity",
+    "front_consistency",
+    "side_consistency",
+    "back_consistency"
+  ],
+  "cases": [
+    {
+      "id": "flexi_basic",
+      "family": "flexi",
+      "goal": "Bewegliches Print-in-Place Tier mit mehreren Segmenten",
+      "must_check": ["joint_clearance", "fused_segments", "support_free", "segment_strength"]
+    },
+    {
+      "id": "vinyl_figure_basic",
+      "family": "vinyl_figure",
+      "goal": "Stilisierte Vinylfigur mit grossem Kopf und kompakter Silhouette",
+      "must_check": ["head_body_ratio", "stable_feet", "printable_details"]
+    },
+    {
+      "id": "mechanical_holder",
+      "family": "mechanical_part",
+      "goal": "Einfacher Halter oder Adapter mit definierten Abmessungen",
+      "must_check": ["dimensions", "wall_thickness", "fit", "hole_diameter"]
+    },
+    {
+      "id": "creature_figure",
+      "family": "creature_character",
+      "goal": "Kreaturenfigur mit Ohren oder Schweif",
+      "must_check": ["silhouette", "ears_tail_strength", "multiview_consistency"]
+    },
+    {
+      "id": "anime_figure",
+      "family": "anime_character",
+      "goal": "Humanoide Animefigur mit Haaren und markanter Pose",
+      "must_check": ["face", "hair", "pose", "thin_parts", "balance"]
+    },
+    {
+      "id": "bust_basic",
+      "family": "bust",
+      "goal": "Kopf-Schulter-Bueste mit Sockel",
+      "must_check": ["face_similarity", "neck_transition", "base_stability"]
+    },
+    {
+      "id": "decoration_multicolor",
+      "family": "decoration",
+      "goal": "Mehrteiliges Dekoobjekt mit klaren Trennlinien",
+      "must_check": ["clean_shapes", "part_separation", "assembly", "printability"]
+    }
+  ],
+  "promotion": {
+    "critical_failures_allowed": 0,
+    "regression_vs_previous_stable_allowed": false,
+    "requires_user_acceptance": true
+  }
+}
