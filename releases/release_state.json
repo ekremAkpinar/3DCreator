@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "stable": {
+    "version": null,
+    "status": "not_yet_certified",
+    "reason": "Noch kein kompletter Hardware-Benchmark auf der Ziel-RX-6800-XT bestanden."
+  },
+  "candidate": {
+    "version": "0.2.1",
+    "status": "hardware_test_required",
+    "features": [
+      "singleview",
+      "multiview",
+      "amd_trellis_workflows",
+      "blender_repair",
+      "feedback_memory",
+      "model_family_taxonomy"
+    ]
+  },
+  "learning": {
+    "enabled": true,
+    "may_modify_stable_automatically": false,
+    "positive_feedback_min_rating": 4,
+    "requires_explicit_user_approval": true
+  },
+  "promotion_rules": {
+    "require_benchmark_suite": true,
+    "require_no_critical_regression": true,
+    "require_reproducible_workflows": true,
+    "require_rollback_manifest": true
+  }
+}
