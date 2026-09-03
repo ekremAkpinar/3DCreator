@@ -14,7 +14,7 @@ function Invoke-Native {
 }
 
 Write-Host "3DCreator - TRELLIS AMD Reparatur" -ForegroundColor Cyan
-Write-Host "Diese Reparatur behebt insbesondere 'missing_node_type' / fehlende TRELLIS-Nodes." -ForegroundColor Gray
+Write-Host "Diese Reparatur behebt missing_node_type, fehlende TRELLIS-Nodes und bekannte Upstream-Inkonsistenzen." -ForegroundColor Gray
 
 $connection = Get-NetTCPConnection -LocalPort 8188 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($connection) {
@@ -38,7 +38,13 @@ if (-not (Test-Path $custom)) {
   Write-Host "Aktualisiere TRELLIS AMD Plugin ..." -ForegroundColor Cyan
   Invoke-Native git -C $custom fetch origin
   Invoke-Native git -C $custom checkout main
-  Invoke-Native git -C $custom pull --ff-only origin main
+  Invoke-Native git -C $custom reset --hard origin/main
+}
+
+Write-Host "Pruefe bekannte TRELLIS-Upstream-Probleme ..." -ForegroundColor Cyan
+& $python (Join-Path $PSScriptRoot "tools\patch_trellis_upstream.py") $custom
+if ($LASTEXITCODE -ne 0) {
+  throw "Der bekannte TRELLIS-Upstream-Patch konnte nicht angewendet werden."
 }
 
 Write-Host "Aktualisiere pip ..." -ForegroundColor Cyan
