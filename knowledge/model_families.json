@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "description": "Startwissen fuer die Modellklassifikation. Dieses Wissen ist Stable-Seed und darf nur versioniert geaendert werden.",
+  "families": {
+    "flexi": {
+      "label_de": "Flexi / Print-in-Place",
+      "keywords": ["flexi", "beweglich", "gelenkig", "print in place", "articulated"],
+      "preferred_pipeline": "procedural_or_specialized",
+      "priorities": ["joint_clearance", "support_free", "segment_strength", "printability"],
+      "default_rules": {
+        "movable": true,
+        "prefer_single_print": true,
+        "requires_clearance_check": true
+      }
+    },
+    "vinyl_figure": {
+      "label_de": "Vinyl-/Funko-Style Figur",
+      "keywords": ["funko", "funko pop", "vinyl", "chibi", "grosser kopf", "sammelfigur"],
+      "preferred_pipeline": "generative_sculpt",
+      "priorities": ["silhouette", "head_body_ratio", "stable_feet", "large_printable_details"],
+      "default_rules": {
+        "stylized": true,
+        "avoid_brand_logos": true,
+        "prefer_stable_base": true
+      }
+    },
+    "mechanical_part": {
+      "label_de": "Technisches Bauteil",
+      "keywords": ["bauteil", "halter", "adapter", "gehaeuse", "ersatzteil", "clip", "scharnier", "bohrung", "mass", "toleranz"],
+      "preferred_pipeline": "cad",
+      "priorities": ["dimensions", "tolerances", "wall_thickness", "fit", "strength"],
+      "default_rules": {
+        "prefer_cad": true,
+        "requires_dimensions": true,
+        "visual_similarity_secondary": true
+      }
+    },
+    "creature_character": {
+      "label_de": "Kreatur / Pokemon-aehnliche Figur",
+      "keywords": ["pokemon", "pokémon", "monster", "kreatur", "tierfigur", "creature"],
+      "preferred_pipeline": "generative_sculpt",
+      "priorities": ["silhouette", "character_features", "multiview_consistency", "thin_part_strength"],
+      "default_rules": {
+        "check_ears_tails_horns": true,
+        "allow_part_separation": true,
+        "prefer_multiview": true
+      }
+    },
+    "anime_character": {
+      "label_de": "Anime-/Manga-Figur",
+      "keywords": ["anime", "manga", "figur", "charakter", "character", "waffe", "katana"],
+      "preferred_pipeline": "generative_sculpt",
+      "priorities": ["face", "hair", "silhouette", "pose", "thin_part_strength"],
+      "default_rules": {
+        "prefer_multiview": true,
+        "check_hair_fingers_weapons": true,
+        "allow_part_separation": true
+      }
+    },
+    "bust": {
+      "label_de": "Bueste",
+      "keywords": ["bueste", "bust", "kopf", "portrait", "schulter"],
+      "preferred_pipeline": "generative_sculpt",
+      "priorities": ["face_similarity", "head_shape", "printable_base"],
+      "default_rules": {
+        "face_priority": true,
+        "base_recommended": true
+      }
+    },
+    "statue": {
+      "label_de": "Statue / Displayfigur",
+      "keywords": ["statue", "displayfigur", "figur", "pose", "diorama"],
+      "preferred_pipeline": "generative_sculpt",
+      "priorities": ["pose", "silhouette", "detail", "balance", "printability"],
+      "default_rules": {
+        "check_center_of_mass": true,
+        "allow_part_separation": true
+      }
+    },
+    "decoration": {
+      "label_de": "Deko / Displayobjekt",
+      "keywords": ["deko", "dekoration", "pokeball", "pokéball", "logo", "schild", "ornament", "wanddeko"],
+      "preferred_pipeline": "hybrid",
+      "priorities": ["clean_shapes", "surface_quality", "color_separation", "printability"],
+      "default_rules": {
+        "multicolor_split_optional": true,
+        "prefer_clean_part_boundaries": true
+      }
+    }
+  }
+}
