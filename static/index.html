@@ -29,7 +29,21 @@
         <div class="sectionHead"><div><span class="step">01</span><h2>Neues Modell</h2></div><span class="hint">RX 6800 XT · 16 GB</span></div>
         <form id="generateForm">
           <label>Projektname<input name="name" required placeholder="z. B. Nachtara-Pokeball"></label>
-          <label>Ziel / Korrekturwunsch<textarea name="prompt" rows="4" placeholder="100 mm, fuer FDM, stabile Ohren, Schweif separat, Details erhalten ..."></textarea><small>3DCreator nutzt Projektname und Beschreibung auch zur automatischen Modellklassifikation, z. B. Flexi, Bauteil, Kreatur oder Animefigur.</small></label>
+          <label>Ziel / Korrekturwunsch<textarea name="prompt" rows="4" placeholder="100 mm, fuer FDM, stabile Ohren, Schweif separat, Details erhalten ..."></textarea><small>3DCreator nutzt Projektname und Beschreibung zur automatischen Modellklassifikation.</small></label>
+          <label>Modelltyp
+            <select name="model_family" class="modelFamilySelect">
+              <option value="auto" selected>Automatisch erkennen</option>
+              <option value="flexi">Flexi / Print-in-Place</option>
+              <option value="vinyl_figure">Vinyl-/Funko-Style Figur</option>
+              <option value="mechanical_part">Technisches Bauteil</option>
+              <option value="creature_character">Kreatur / Pokemon-aehnliche Figur</option>
+              <option value="anime_character">Anime-/Manga-Figur</option>
+              <option value="bust">Bueste</option>
+              <option value="statue">Statue / Displayfigur</option>
+              <option value="decoration">Deko / Displayobjekt</option>
+            </select>
+            <small>Wenn die Automatik falsch liegt, waehle den Typ selbst. Diese manuelle Einordnung wird als besonders verlaessliches Lernwissen gespeichert.</small>
+          </label>
           <div class="modeSwitch"><label><input type="radio" name="mode" value="single" checked> SingleView</label><label><input type="radio" name="mode" value="multiview"> MultiView</label></div>
           <div class="viewGrid" id="viewGrid">
             <label class="viewSlot required"><span>Front</span><small>Pflicht</small><input name="front" type="file" accept="image/*" required><b class="fileName">Bild waehlen</b></label>
