@@ -22,7 +22,8 @@ function setViewer(id,title,variant='best',repairStatus=''){ viewer.src=`/api/ge
 async function refreshStatus(){
   try{
     const [s,l]=await Promise.all([fetch('/api/status').then(r=>r.json()),fetch('/api/learning/stats').then(r=>r.json())]);
-    version.textContent=`v${s.version}`; learning.textContent=`${l.approved} freigegeben · ${l.feedback} Bewertungen`;
+    version.textContent=`v${s.version}`;
+    learning.textContent=`${l.approved} freigegeben · ${l.feedback} Bewertungen · ${l.classified_projects||0} klassifiziert`;
     const all=Object.values(s.workflows||{}); const ready=all.length===4&&all.every(x=>x.exists);
     setupWorkflowsButton.textContent=ready?'Workflows neu erzeugen':'Workflows automatisch einrichten'; setupWorkflowsButton.classList.toggle('ready',ready);
     const key=`${selectedMode()}_${selectedQuality()}`; const wf=s.workflows?.[key];
@@ -44,11 +45,41 @@ async function saveFeedback(id,root){ const rating=Number(root.querySelector('[n
 async function repairGeneration(id,btn,title){ const old=btn.textContent; btn.disabled=true; btn.textContent='Repariere ...'; try{ const res=await fetch(`/api/generations/${id}/repair`,{method:'POST'}); const data=await res.json(); if(!res.ok) throw new Error(data.detail||'Reparatur fehlgeschlagen'); setViewer(id,title,'repaired','done'); await refreshGenerations(); }catch(e){ alert(`Blender-Reparatur: ${e.message}`); }finally{ btn.disabled=false; btn.textContent=old; } }
 function feedbackHtml(){ return `<div class="feedback"><div class="feedbackTop"><select name="rating"><option value="5">5 - perfekt</option><option value="4">4 - gut</option><option value="3">3 - mittel</option><option value="2">2 - schlecht</option><option value="1">1 - unbrauchbar</option></select><label class="learnCheck"><input type="checkbox" name="approved"> Fuer Lernen freigeben</label></div><input name="note" placeholder="Was soll 3DCreator beim naechsten Mal besser machen?"><div class="issues"><label><input type="checkbox" name="issue" value="silhouette"> Silhouette</label><label><input type="checkbox" name="issue" value="details"> Details</label><label><input type="checkbox" name="issue" value="backside"> Rueckseite</label><label><input type="checkbox" name="issue" value="thin_parts"> Zu duenn</label><label><input type="checkbox" name="issue" value="mesh_errors"> Meshfehler</label><label><input type="checkbox" name="issue" value="printability"> Druckbarkeit</label></div><button type="button" class="feedbackButton secondary">Bewertung speichern</button><span class="feedbackStatus"></span></div>`; }
 
-async function refreshGenerations(){ const items=await fetch('/api/generations').then(r=>r.json()); generationsEl.innerHTML=items.length?'':'<div class="emptyList">Noch keine Generationen.</div>'; for(const g of items){ const div=document.createElement('div'); div.className='item'; const views=(g.source_images||[]).map(v=>v.label||v.view).join(' · ')||'Front'; const repairBadge=g.repair_status&&g.repair_status!=='none'?`<span class="badge repair-${g.repair_status}">Repair ${g.repair_status}</span>`:''; const modeBadge=`<span class="badge">${g.mode==='multiview'?'MultiView':'SingleView'}</span>`; const viewButtons=g.status==='done'?`<div class="itemActions"><button type="button" class="miniAction viewBest">Im Viewer</button><a class="miniAction" href="/api/generations/${g.id}/file?variant=raw">Raw</a>${g.has_repaired?`<a class="miniAction" href="/api/generations/${g.id}/file?variant=repaired">Repariert</a>`:''}<button type="button" class="miniAction repairNow">${g.has_repaired?'Neu reparieren':'Reparieren'}</button></div>`:''; div.innerHTML=`<div class="itemTitle"><div><strong>${escapeHtml(g.project_name||'Unbenannt')}</strong><span class="${g.status}">${g.status}</span></div><div>${modeBadge}${repairBadge}</div></div><div class="meta">${g.quality}px · ${views} · ${formatDate(g.created_at)}</div>${g.prompt?`<div class="prompt">${escapeHtml(g.prompt)}</div>`:''}${g.error?`<div class="error">${escapeHtml(g.error)}</div>`:''}${viewButtons}${g.status==='done'?feedbackHtml():''}`; const viewBtn=div.querySelector('.viewBest'); if(viewBtn) viewBtn.addEventListener('click',()=>setViewer(g.id,g.project_name,'best',g.repair_status)); const repairBtn=div.querySelector('.repairNow'); if(repairBtn) repairBtn.addEventListener('click',()=>repairGeneration(g.id,repairBtn,g.project_name)); const fb=div.querySelector('.feedbackButton'); if(fb) fb.addEventListener('click',()=>saveFeedback(g.id,div.querySelector('.feedback')).catch(e=>alert(e.message))); generationsEl.appendChild(div); } }
+async function refreshGenerations(){
+  const items=await fetch('/api/generations').then(r=>r.json());
+  generationsEl.innerHTML=items.length?'':'<div class="emptyList">Noch keine Generationen.</div>';
+  for(const g of items){
+    const div=document.createElement('div'); div.className='item';
+    const views=(g.source_images||[]).map(v=>v.label||v.view).join(' · ')||'Front';
+    const repairBadge=g.repair_status&&g.repair_status!=='none'?`<span class="badge repair-${g.repair_status}">Repair ${g.repair_status}</span>`:'';
+    const modeBadge=`<span class="badge">${g.mode==='multiview'?'MultiView':'SingleView'}</span>`;
+    const familyLabel=g.classification?.label||g.model_family||'Unklassifiziert';
+    const familyBadge=`<span class="badge">${escapeHtml(familyLabel)}</span>`;
+    const viewButtons=g.status==='done'?`<div class="itemActions"><button type="button" class="miniAction viewBest">Im Viewer</button><a class="miniAction" href="/api/generations/${g.id}/file?variant=raw">Raw</a>${g.has_repaired?`<a class="miniAction" href="/api/generations/${g.id}/file?variant=repaired">Repariert</a>`:''}<button type="button" class="miniAction repairNow">${g.has_repaired?'Neu reparieren':'Reparieren'}</button></div>`:'';
+    div.innerHTML=`<div class="itemTitle"><div><strong>${escapeHtml(g.project_name||'Unbenannt')}</strong><span class="${g.status}">${g.status}</span></div><div>${familyBadge}${modeBadge}${repairBadge}</div></div><div class="meta">${g.quality}px · ${views} · ${formatDate(g.created_at)}</div>${g.prompt?`<div class="prompt">${escapeHtml(g.prompt)}</div>`:''}${g.error?`<div class="error">${escapeHtml(g.error)}</div>`:''}${viewButtons}${g.status==='done'?feedbackHtml():''}`;
+    const viewBtn=div.querySelector('.viewBest'); if(viewBtn) viewBtn.addEventListener('click',()=>setViewer(g.id,g.project_name,'best',g.repair_status));
+    const repairBtn=div.querySelector('.repairNow'); if(repairBtn) repairBtn.addEventListener('click',()=>repairGeneration(g.id,repairBtn,g.project_name));
+    const fb=div.querySelector('.feedbackButton'); if(fb) fb.addEventListener('click',()=>saveFeedback(g.id,div.querySelector('.feedback')).catch(e=>alert(e.message)));
+    generationsEl.appendChild(div);
+  }
+}
 function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
 function formatDate(value){ try{return new Date(value).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});}catch{return value||'';} }
 setupWorkflowsButton.addEventListener('click',setupWorkflows);
 form.addEventListener('change',e=>{ if(e.target.matches('input[name=mode],input[name=quality]')) updateMode(); if(e.target.matches('input[type=file]')) updateFileLabel(e.target); });
-form.addEventListener('submit',async e=>{ e.preventDefault(); if(selectedMode()==='multiview'&&!multiInputs.some(input=>input.files?.length)){ message.textContent='MultiView braucht neben Front mindestens eine weitere Ansicht.'; return; } const projectTitle=form.elements.name.value; message.textContent='Generation wird gestartet. TRELLIS arbeitet lokal auf deiner GPU ...'; button.disabled=true; try{ const response=await fetch('/api/generate',{method:'POST',body:new FormData(form)}); const data=await response.json(); if(!response.ok) throw new Error(data.detail||JSON.stringify(data)); const repair=data.repair?(data.repair.ok?' · Blender-Reparatur fertig':' · Rohmodell fertig, Blender-Reparatur nicht verfuegbar'):''; message.textContent=`Fertig · ${data.views.join(', ')}${repair}`; setViewer(data.generation_id,projectTitle,'best',data.repair?.ok?'done':''); form.reset(); document.querySelectorAll('.viewSlot').forEach(slot=>{ slot.classList.remove('hasFile'); const n=slot.querySelector('.fileName'); if(n)n.textContent='Bild waehlen'; }); updateMode(); }catch(err){ message.textContent=`Fehler: ${err.message}`; }finally{ button.disabled=false; await refreshGenerations(); await refreshStatus(); } });
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(selectedMode()==='multiview'&&!multiInputs.some(input=>input.files?.length)){ message.textContent='MultiView braucht neben Front mindestens eine weitere Ansicht.'; return; }
+  const projectTitle=form.elements.name.value; message.textContent='Generation wird gestartet. 3DCreator klassifiziert zuerst den Modelltyp und startet danach TRELLIS ...'; button.disabled=true;
+  try{
+    const response=await fetch('/api/generate',{method:'POST',body:new FormData(form)}); const data=await response.json(); if(!response.ok) throw new Error(data.detail||JSON.stringify(data));
+    const repair=data.repair?(data.repair.ok?' · Blender-Reparatur fertig':' · Rohmodell fertig, Blender-Reparatur nicht verfuegbar'):'';
+    const family=data.classification?.label?` · erkannt: ${data.classification.label}`:'';
+    message.textContent=`Fertig${family} · ${data.views.join(', ')}${repair}`;
+    setViewer(data.generation_id,projectTitle,'best',data.repair?.ok?'done':'');
+    form.reset(); document.querySelectorAll('.viewSlot').forEach(slot=>{ slot.classList.remove('hasFile'); const n=slot.querySelector('.fileName'); if(n)n.textContent='Bild waehlen'; }); updateMode();
+  }catch(err){ message.textContent=`Fehler: ${err.message}`; }
+  finally{ button.disabled=false; await refreshGenerations(); await refreshStatus(); }
+});
 viewer.addEventListener('error',()=>{ viewerMeta.textContent='Diese Rohdatei kann der Browser nicht direkt anzeigen. Nutze Blender-Reparatur, um eine lokale GLB-Vorschau zu erzeugen.'; });
 updateMode(); refreshStatus(); refreshGenerations();
