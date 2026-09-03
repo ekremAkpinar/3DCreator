@@ -16,15 +16,9 @@ function Invoke-Native {
 Write-Host "3DCreator - TRELLIS AMD Reparatur" -ForegroundColor Cyan
 Write-Host "Diese Reparatur behebt insbesondere 'missing_node_type' / fehlende TRELLIS-Nodes." -ForegroundColor Gray
 
-try {
-  $connection = Get-NetTCPConnection -LocalPort 8188 -State Listen -ErrorAction Stop | Select-Object -First 1
-  if ($connection) {
-    throw "ComfyUI laeuft noch auf Port 8188. Schliesse zuerst das Fenster '3DCreator Backend' und starte repair-amd-backend.ps1 danach erneut."
-  }
-} catch [Microsoft.PowerShell.Commands.WriteErrorException] {
-  throw
-} catch {
-  # Kein Listener oder Get-NetTCPConnection nicht verfuegbar: weiter.
+$connection = Get-NetTCPConnection -LocalPort 8188 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($connection) {
+  throw "ComfyUI laeuft noch auf Port 8188. Schliesse zuerst das Fenster '3DCreator Backend' und starte repair-amd-backend.ps1 danach erneut."
 }
 
 $python = Join-Path $ComfyDir "venv\Scripts\python.exe"
@@ -75,13 +69,13 @@ if ($LASTEXITCODE -ne 0) {
   Write-Warning "pip check meldet Konflikte. Der folgende TRELLIS-Importcheck zeigt, ob sie fuer das Plugin kritisch sind."
 }
 
-Write-Host "" 
+Write-Host ""
 Write-Host "Fuehre echten TRELLIS-Plugin-Importcheck aus ..." -ForegroundColor Cyan
 & $python (Join-Path $PSScriptRoot "tools\check_trellis_import.py")
 if ($LASTEXITCODE -ne 0) {
   throw "TRELLIS kann weiterhin nicht importiert werden. Kopiere die Ausgabe ab '[FEHLER] TRELLIS-Custom-Node' inklusive Traceback und sende sie mir."
 }
 
-Write-Host "" 
+Write-Host ""
 Write-Host "TRELLIS-Plugin ist lokal importierbar." -ForegroundColor Green
 Write-Host "Starte jetzt .\start.bat und pruefe danach erneut die Generation." -ForegroundColor Green
