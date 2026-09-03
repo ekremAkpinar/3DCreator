@@ -16,18 +16,58 @@ class ComfyClient:
     IMAGE_NODE_TYPES = {"LoadImage", "Trellis2LoadImageWithTransparency"}
     MULTIVIEW_SELECTOR = "Trellis2SelectImagesForMultiView"
     MULTIVIEW_KEYS = ("front", "back", "left", "right")
+    REQUIRED_TRELLIS_NODES = (
+        "Trellis2LoadImageWithTransparency",
+        "Trellis2LoadModel",
+        "Trellis2ShapeGenerator",
+        "Trellis2ShapeMultiViewGenerator",
+        "Trellis2SelectImagesForMultiView",
+        "Trellis2DecodeLatents",
+        "Trellis2ExportMesh",
+    )
 
     def __init__(self, base_url: str, timeout: int = 20):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
+    def trellis_node_status(self) -> dict[str, Any]:
+        missing: list[str] = []
+        errors: dict[str, str] = {}
+        for node in self.REQUIRED_TRELLIS_NODES:
+            try:
+                response = requests.get(f"{self.base_url}/object_info/{node}", timeout=4)
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict) or node not in payload:
+                    missing.append(node)
+            except Exception as exc:
+                missing.append(node)
+                errors[node] = str(exc)
+        return {
+            "ready": not missing,
+            "missing": missing,
+            "errors": errors,
+        }
+
     def status(self) -> dict[str, Any]:
         try:
             response = requests.get(f"{self.base_url}/system_stats", timeout=3)
             response.raise_for_status()
-            return {"online": True, "data": response.json()}
+            nodes = self.trellis_node_status()
+            return {
+                "online": True,
+                "trellis_ready": nodes["ready"],
+                "missing_nodes": nodes["missing"],
+                "node_errors": nodes["errors"],
+                "data": response.json(),
+            }
         except Exception as exc:
-            return {"online": False, "error": str(exc)}
+            return {
+                "online": False,
+                "trellis_ready": False,
+                "missing_nodes": list(self.REQUIRED_TRELLIS_NODES),
+                "error": str(exc),
+            }
 
     def upload_image(self, image_path: Path) -> str:
         with image_path.open("rb") as handle:
