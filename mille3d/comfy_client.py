@@ -153,6 +153,17 @@ class ComfyClient:
         cls.inject_images(workflow, [image_name])
 
     def queue(self, workflow: dict[str, Any]) -> str:
+        nodes = self.trellis_node_status()
+        if not nodes["ready"]:
+            missing = ", ".join(nodes["missing"][:4])
+            if len(nodes["missing"]) > 4:
+                missing += f" (+{len(nodes['missing']) - 4} weitere)"
+            raise ComfyError(
+                "ComfyUI laeuft, aber das TRELLIS-AMD-Plugin ist nicht vollstaendig registriert. "
+                f"Fehlende Nodes: {missing}. Schliesse das Backend-Fenster und fuehre "
+                "repair-amd-backend.ps1 aus."
+            )
+
         response = requests.post(f"{self.base_url}/prompt", json={"prompt": workflow}, timeout=self.timeout)
         if not response.ok:
             raise ComfyError(f"ComfyUI /prompt: {response.status_code} {response.text[:1000]}")
