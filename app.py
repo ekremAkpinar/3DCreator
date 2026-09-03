@@ -15,11 +15,12 @@ from mille3d.blender_bridge import blender_status, repair_mesh
 from mille3d.comfy_client import ComfyClient, ComfyError
 from mille3d.config import COMFY_URL, PROJECTS_DIR, ROOT, ensure_dirs, workflow_for
 from mille3d.db import connect, init_db, rows, utcnow
+from mille3d.model_taxonomy import classify_model, load_taxonomy
 from mille3d.workflow_setup import setup_workflows
 
 ensure_dirs()
 init_db()
-app = FastAPI(title="Mille 3D", version=__version__)
+app = FastAPI(title="3DCreator", version=__version__)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 client = ComfyClient(COMFY_URL)
 
@@ -128,6 +129,7 @@ def status() -> dict:
         for mode in VALID_MODES
         for quality in VALID_QUALITIES
     }
+    taxonomy = load_taxonomy()
     return {
         "version": __version__,
         "comfy_url": COMFY_URL,
@@ -135,6 +137,11 @@ def status() -> dict:
         "blender": blender_status(),
         "workflows": workflows,
         "workflow_setup_ready": True,
+        "taxonomy_version": taxonomy.get("schema_version", 1),
+        "model_families": [
+            {"id": key, "label": value.get("label_de", key)}
+            for key, value in taxonomy.get("families", {}).items()
+        ],
     }
 
 
@@ -155,7 +162,7 @@ def projects() -> list[dict]:
 def generations() -> list[dict]:
     items = rows(
         """
-        SELECT g.*, p.name AS project_name, p.prompt,
+        SELECT g.*, p.name AS project_name, p.prompt, p.model_family, p.classification_json,
                (SELECT rating FROM feedback f WHERE f.generation_id=g.id ORDER BY f.id DESC LIMIT 1) AS rating,
                (SELECT approved_for_learning FROM feedback f WHERE f.generation_id=g.id ORDER BY f.id DESC LIMIT 1) AS approved_for_learning,
                (SELECT note FROM feedback f WHERE f.generation_id=g.id ORDER BY f.id DESC LIMIT 1) AS feedback_note,
@@ -174,6 +181,10 @@ def generations() -> list[dict]:
             item["issues"] = json.loads(item.get("issues_json") or "[]")
         except json.JSONDecodeError:
             item["issues"] = []
+        try:
+            item["classification"] = json.loads(item.get("classification_json") or "{}")
+        except json.JSONDecodeError:
+            item["classification"] = {}
         item["has_raw"] = bool(item.get("output_file"))
         item["has_repaired"] = bool(item.get("repaired_file"))
     return items
@@ -185,7 +196,14 @@ def learning_stats() -> dict:
     approved = rows("SELECT COUNT(*) AS n FROM feedback WHERE approved_for_learning=1")[0]["n"]
     positive = rows("SELECT COUNT(*) AS n FROM feedback WHERE rating>=4")[0]["n"]
     negative = rows("SELECT COUNT(*) AS n FROM feedback WHERE rating<=2")[0]["n"]
-    return {"feedback": total, "approved": approved, "positive": positive, "negative": negative}
+    classified = rows("SELECT COUNT(*) AS n FROM projects WHERE model_family!='unknown'")[0]["n"]
+    return {
+        "feedback": total,
+        "approved": approved,
+        "positive": positive,
+        "negative": negative,
+        "classified_projects": classified,
+    }
 
 
 @app.post("/api/generate")
@@ -207,7 +225,11 @@ def generate(
     if front is None or not front.filename:
         raise HTTPException(400, "Eine Frontansicht ist erforderlich.")
     if not client.status().get("online"):
-        raise HTTPException(503, "ComfyUI ist nicht erreichbar. Backend zuerst starten.")
+        raise HTTPException(
+            503,
+            "ComfyUI ist nicht erreichbar. Starte 3DCreator ueber start.bat. "
+            "Falls das Backend noch fehlt, einmalig install-amd-backend.ps1 ausfuehren.",
+        )
 
     uploads = {"front": front, "right": right, "back": back, "left": left}
     selected = [(key, uploads[key]) for key in VIEW_ORDER if uploads[key] and uploads[key].filename]
@@ -217,6 +239,7 @@ def generate(
         raise HTTPException(400, "MultiView benoetigt Frontansicht plus mindestens eine weitere Ansicht.")
 
     workflow_path = _ensure_workflow(mode, quality)
+    classification = classify_model(name, prompt)
 
     project_id = uuid.uuid4().hex
     generation_id = uuid.uuid4().hex
@@ -234,8 +257,19 @@ def generate(
 
     with connect() as conn:
         conn.execute(
-            "INSERT INTO projects(id,name,prompt,created_at) VALUES(?,?,?,?)",
-            (project_id, name.strip(), prompt.strip(), utcnow()),
+            """
+            INSERT INTO projects(
+                id,name,prompt,model_family,classification_json,created_at
+            ) VALUES(?,?,?,?,?,?)
+            """,
+            (
+                project_id,
+                name.strip(),
+                prompt.strip(),
+                classification["family"],
+                json.dumps(classification, ensure_ascii=False),
+                utcnow(),
+            ),
         )
         conn.execute(
             """
@@ -296,6 +330,7 @@ def generate(
             "mode": mode,
             "views": [item["view"] for item in sources],
             "workflow": str(workflow_path),
+            "classification": classification,
             "model_url": f"/api/generations/{generation_id}/model",
             "download_url": f"/api/generations/{generation_id}/file",
             "repair": repair_result,
