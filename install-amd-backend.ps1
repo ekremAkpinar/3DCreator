@@ -82,6 +82,11 @@ $custom = Join-Path $ComfyDir "custom_nodes\ComfyUI-Trellis2-AMD"
 if (-not (Test-Path $custom)) {
   Write-Host "Lade TRELLIS.2 AMD Nodes ..." -ForegroundColor Cyan
   Invoke-Native git clone https://github.com/dmonkman/ComfyUI-Trellis2-AMD.git $custom
+} else {
+  Write-Host "TRELLIS.2 AMD Nodes bereits vorhanden - aktualisiere ..." -ForegroundColor Cyan
+  Invoke-Native git -C $custom fetch origin
+  Invoke-Native git -C $custom checkout main
+  Invoke-Native git -C $custom pull --ff-only origin main
 }
 Set-Location $custom
 
@@ -97,7 +102,7 @@ foreach ($wheel in $wheels) {
   if (-not (Test-Path $path)) {
     throw "Erforderliches AMD-Wheel fehlt: $path"
   }
-  Invoke-Native $python -m pip install $path
+  Invoke-Native $python -m pip install --force-reinstall --no-deps $path
 }
 
 Write-Host "Installiere TRELLIS-Abhaengigkeiten ..." -ForegroundColor Cyan
@@ -107,10 +112,19 @@ Write-Host "Pruefe RX 6800 XT / ROCm ..." -ForegroundColor Cyan
 Invoke-Native $python -c "import torch; print('Torch:', torch.__version__); print('HIP:', torch.version.hip); print('GPU verfuegbar:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NO GPU'); assert torch.cuda.is_available(), 'ROCm GPU wurde nicht erkannt'"
 
 Set-Location $PSScriptRoot
-Write-Host "" 
-Write-Host "Backend erfolgreich eingerichtet." -ForegroundColor Green
+Write-Host "Pruefe, ob der TRELLIS-Custom-Node wirklich importierbar ist ..." -ForegroundColor Cyan
+& $python (Join-Path $PSScriptRoot "tools\check_trellis_import.py")
+if ($LASTEXITCODE -ne 0) {
+  throw "TRELLIS-Plugin konnte nicht geladen werden. Fuehre danach repair-amd-backend.ps1 aus bzw. sende den angezeigten Traceback."
+}
+
+$dino = Join-Path $ComfyDir "models\facebook\dinov3-vitl16-pretrain-lvd1689m"
+Write-Host ""
+Write-Host "Backend und TRELLIS-Nodes erfolgreich eingerichtet." -ForegroundColor Green
+if (-not (Test-Path $dino)) {
+  Write-Warning "DINOv3-Modell ist noch nicht lokal vorhanden. Der AMD-Upstream verlangt Zugriff auf facebook/dinov3-vitl16-pretrain-lvd1689m unter ComfyUI\models\facebook\. Das wird erst beim eigentlichen TRELLIS-Lauf relevant."
+}
 Write-Host "Die 3DCreator-Workflows werden von setup-app.ps1 / setup-workflows.ps1 verwaltet." -ForegroundColor Green
-Write-Host "Beim ersten echten TRELLIS-Lauf koennen zusaetzliche Modellgewichte automatisch heruntergeladen werden." -ForegroundColor Yellow
-Write-Host "" 
+Write-Host ""
 Write-Host "Naechster Schritt: .\check-system.bat" -ForegroundColor Cyan
 Write-Host "Danach genuegt im Alltag: .\start.bat" -ForegroundColor Cyan
