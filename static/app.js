@@ -75,7 +75,7 @@ async function refreshGenerations(){
     generationsEl.appendChild(div);
   }
 }
-function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[ch])); }
+function escapeHtml(value=''){ return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
 function formatDate(value){ try{return new Date(value).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});}catch{return value||'';} }
 setupWorkflowsButton.addEventListener('click',setupWorkflows);
 form.addEventListener('change',e=>{ if(e.target.matches('input[name=mode],input[name=quality]')) updateMode(); if(e.target.matches('input[type=file]')) updateFileLabel(e.target); });
