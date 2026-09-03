@@ -86,10 +86,16 @@ if (-not (Test-Path $custom)) {
   Write-Host "TRELLIS.2 AMD Nodes bereits vorhanden - aktualisiere ..." -ForegroundColor Cyan
   Invoke-Native git -C $custom fetch origin
   Invoke-Native git -C $custom checkout main
-  Invoke-Native git -C $custom pull --ff-only origin main
+  Invoke-Native git -C $custom reset --hard origin/main
 }
-Set-Location $custom
 
+Write-Host "Pruefe bekannte TRELLIS-Upstream-Probleme ..." -ForegroundColor Cyan
+& $python (Join-Path $PSScriptRoot "tools\patch_trellis_upstream.py") $custom
+if ($LASTEXITCODE -ne 0) {
+  throw "Der bekannte TRELLIS-Upstream-Patch konnte nicht angewendet werden."
+}
+
+Set-Location $custom
 $wheelDir = Join-Path $custom "wheels\Windows\Python3.12"
 $wheels = @(
   "cumesh-1.0+rocm10.0-cp312-cp312-win_amd64.whl",
@@ -115,14 +121,14 @@ Set-Location $PSScriptRoot
 Write-Host "Pruefe, ob der TRELLIS-Custom-Node wirklich importierbar ist ..." -ForegroundColor Cyan
 & $python (Join-Path $PSScriptRoot "tools\check_trellis_import.py")
 if ($LASTEXITCODE -ne 0) {
-  throw "TRELLIS-Plugin konnte nicht geladen werden. Fuehre danach repair-amd-backend.ps1 aus bzw. sende den angezeigten Traceback."
+  throw "TRELLIS-Plugin konnte nicht geladen werden. Fuehre repair-amd-backend.ps1 aus bzw. sende den angezeigten Traceback."
 }
 
 $dino = Join-Path $ComfyDir "models\facebook\dinov3-vitl16-pretrain-lvd1689m"
 Write-Host ""
 Write-Host "Backend und TRELLIS-Nodes erfolgreich eingerichtet." -ForegroundColor Green
 if (-not (Test-Path $dino)) {
-  Write-Warning "DINOv3-Modell ist noch nicht lokal vorhanden. Der AMD-Upstream verlangt Zugriff auf facebook/dinov3-vitl16-pretrain-lvd1689m unter ComfyUI\models\facebook\. Das wird erst beim eigentlichen TRELLIS-Lauf relevant."
+  Write-Warning "DINOv3-Modell ist noch nicht lokal vorhanden. Der AMD-Upstream verlangt facebook/dinov3-vitl16-pretrain-lvd1689m unter ComfyUI\models\facebook\. Das wird beim eigentlichen TRELLIS-Lauf relevant."
 }
 Write-Host "Die 3DCreator-Workflows werden von setup-app.ps1 / setup-workflows.ps1 verwaltet." -ForegroundColor Green
 Write-Host ""
