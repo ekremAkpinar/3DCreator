@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>3DCreator</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="module" src="/static/vendor/model-viewer.min.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <span class="eyebrow">LOCAL 3D AI / AMD</span>
+        <h1>3DCreator <span id="version"></span></h1>
+        <p class="lead">Lokal generieren, reparieren, bewerten und mit jedem Projekt bessere Lerndaten sammeln.</p>
+      </div>
+      <div class="headStatus">
+        <div id="backend" class="pill">Backend pruefen ...</div>
+        <button id="setupWorkflows" type="button" class="statusButton">Workflows automatisch einrichten</button>
+        <div id="blender" class="subpill">Blender pruefen ...</div>
+        <div id="learning" class="subpill">0 Lerndaten</div>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <article class="card createCard">
+        <div class="sectionHead"><div><span class="step">01</span><h2>Neues Modell</h2></div><span class="hint">RX 6800 XT · 16 GB</span></div>
+        <form id="generateForm">
+          <label>Projektname<input name="name" required placeholder="z. B. Nachtara-Pokeball"></label>
+          <label>Ziel / Korrekturwunsch<textarea name="prompt" rows="4" placeholder="100 mm, fuer FDM, stabile Ohren, Schweif separat, Details erhalten ..."></textarea><small>Der Text wird zusammen mit Ergebnis und spaeterem Feedback als Lerndatensatz gespeichert.</small></label>
+          <div class="modeSwitch"><label><input type="radio" name="mode" value="single" checked> SingleView</label><label><input type="radio" name="mode" value="multiview"> MultiView</label></div>
+          <div class="viewGrid" id="viewGrid">
+            <label class="viewSlot required"><span>Front</span><small>Pflicht</small><input name="front" type="file" accept="image/*" required><b class="fileName">Bild waehlen</b></label>
+            <label class="viewSlot multiOnly"><span>Rechte Seite</span><small>optional</small><input name="right" type="file" accept="image/*" disabled><b class="fileName">Bild waehlen</b></label>
+            <label class="viewSlot multiOnly"><span>Rueckseite</span><small>optional</small><input name="back" type="file" accept="image/*" disabled><b class="fileName">Bild waehlen</b></label>
+            <label class="viewSlot multiOnly"><span>Linke Seite</span><small>optional</small><input name="left" type="file" accept="image/*" disabled><b class="fileName">Bild waehlen</b></label>
+          </div>
+          <small id="multiHelp" class="multiHelp">MultiView nutzt Front + mindestens eine weitere Ansicht. TRELLIS ordnet Front, hinten, links und rechts explizit zu.</small>
+          <div class="optionsRow"><div><span class="optionTitle">Qualitaet</span><div class="quality"><label><input type="radio" name="quality" value="512" checked> 512 · empfohlen</label><label><input type="radio" name="quality" value="1024"> 1024 · experimentell</label></div></div><label class="repairToggle"><input type="checkbox" name="auto_repair" value="true" checked><span><strong>Blender Auto-Repair</strong><small>Rohmodell bleibt erhalten</small></span></label></div>
+          <button id="generateButton">3D-Modell erstellen</button>
+        </form>
+        <pre id="message"></pre>
+      </article>
+      <article class="card viewerCard">
+        <div class="sectionHead"><div><span class="step">02</span><h2>3D-Vorschau</h2></div><div class="viewerActions"><a id="downloadBest" class="miniButton disabled" href="#">Download</a></div></div>
+        <div class="viewerShell"><model-viewer id="viewer" camera-controls auto-rotate shadow-intensity="1" exposure="1" environment-image="neutral" interaction-prompt="auto"></model-viewer><div id="viewerEmpty" class="viewerEmpty"><strong>Noch kein Modell ausgewaehlt</strong><span>Nach einer Generation erscheint das GLB hier direkt.</span></div></div>
+        <div id="viewerMeta" class="viewerMeta">Rohmodell und reparierte Version bleiben getrennt gespeichert.</div>
+        <div class="sectionHead historyHead"><div><span class="step">03</span><h2>Generationen & Lernen</h2></div></div>
+        <div id="generations" class="list"></div>
+      </article>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
